@@ -245,13 +245,6 @@ You should see output similar to the following:
     Run 'oc status' to view your app.
 ----
 
-Then, start a build from the local directory with the following command:
-
-[source,sh,role="copypaste"]
-----
-oc start-build image-generator --from-dir=.
-----
-
 You can follow the progress of the build with the following command:
 
 [source,sh,role="copypaste"]
@@ -269,7 +262,7 @@ image::image-generator-failed-dc.png[image-generator-failed-dc, 700]
 
 You'll see that the pod is failing because it can't find the access key for the S3 endpoint:
 
-[source,sh,role="copypaste"]
+[source,sh]
 ----
 botocore.exceptions.NoCredentialsError: Unable to locate credentials
 ----
@@ -286,22 +279,32 @@ image::image-generator-dc-env-add.png[image-generator-dc-env-add, 700]
 
 Then click "Save" at the bottom of the pane to update the deployment configuration. The deployment will redeploy the new pods on the topology view and it should go to blue.
 
+Let's label the image-generator in order that we can see it properly in the topology map
+
+[source,sh,role="copypaste"]
+----
+oc label dc/image-generator app.openshift.io/runtime=python --overwrite && \
+oc label dc/image-generator app.openshift.io/part-of=xraylab --overwrite
+----
+
 === Deploy the Image Server
 
 Finally, to deploy the Image Server, we'll be building another container image from source. To build the container image, we'll use the "oc new-app" command, as in the last example. Enter the following command in the terminal tab:
 
 [source,sh,role="copypaste"]
 ----
-cd ~/machine-learning-workshop-labs/services/image-server && oc new-app . --strategy=docker --name=image-server
+cd ~/machine-learning-workshop-labs/services/image-server && oc new-app https://github.com/machine-learning-workshop-guides \
+--strategy=docker --context-dir=services/image-server --name=image-server
 ----
 
 You should see output similar to the previous example.
 
-Then, start a build from the local directory with the following command:
+Let's label this deployment so that it matches the image-generator deployment
 
 [source,sh,role="copypaste"]
 ----
-oc start-build image-server --from-dir=.
+oc label dc/image-server app.openshift.io/runtime=python --overwrite && \
+oc label dc/image-server app.openshift.io/part-of=xraylab --overwrite
 ----
 
 You can follow the progress of the build with the following command:
@@ -314,7 +317,6 @@ oc logs -f bc/image-server
 You should see the Docker build running in the container. Once the build completes, switch over to the topology view to see the container deployment.
 
 The Image Server doesn't need credentials to view the S3 bucket, as the bucket has been marked as public. The deployment will succeed without the secret.
-
 
 === Deploy the Risk Assessment Service
 
